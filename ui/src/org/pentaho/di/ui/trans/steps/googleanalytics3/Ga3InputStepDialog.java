@@ -59,6 +59,8 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
 
   private Group querySettings;
 
+  private Text maxResults;
+
   public Ga3InputStepDialog( Shell parent, Object in, TransMeta transMeta, String sname ) {
     super( parent, (BaseStepMeta) in, transMeta, sname );
     input = (Ga3InputStepMeta) in;
@@ -231,11 +233,34 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
   }
 
   private void createMaxResultsRow( int middle, int margin ) {
-    // todo
+    Label wlMaxResults = new Label( shell, SWT.RIGHT );
+    wlMaxResults.setText( getString( "Ga3Dialog.MaxResults.Label" ) );
+
+    FormData fdLabel = new FormData();
+    fdLabel.left = new FormAttachment( 0, 0 );
+    fdLabel.right = new FormAttachment( middle, -margin );
+    fdLabel.bottom = new FormAttachment( 100, -50 );
+    wlMaxResults.setLayoutData( fdLabel );
+
+    maxResults = new Text( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    maxResults.setToolTipText( getString( "Ga3Dialog.MaxResults.Tooltip" ) );
+
+    FormData fdText = new FormData();
+    fdText.left = new FormAttachment( middle, 0 );
+    fdText.right = new FormAttachment( 100, 0 );
+    fdText.bottom = new FormAttachment( 100, -50 );
+    maxResults.setLayoutData( fdText );
+
+    setDefaultWidgetStyle( wlMaxResults, maxResults );
   }
 
   private void createButtons( UiBuilder uiBuilder ) {
-    // todo
+    wOK = uiBuilder.createButton( "System.Button.OK" );
+    wCancel = uiBuilder.createButton( "System.Button.Cancel" );
+    wGet = uiBuilder.createButton( "System.Button.GetFields" );
+    wPreview = uiBuilder.createButton( "System.Button.Preview" );
+
+    BaseStepDialog.positionBottomButtons( shell, new Button[] { wOK, wGet, wPreview, wCancel }, uiBuilder.margin, maxResults );
   }
 
 
@@ -256,7 +281,7 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
   }
 
   private void installModifyListeners() {
-    addModifyListenerForTexts( this, wStepname );
+    addModifyListenerForTexts( this, wStepname, maxResults );
     addModifyListenerForTextVars( this, applicationName, accountEmail, keyFilename, customProfile );
     addModifyListenerForComboBoxes( this, loadedProfiles );
   }
@@ -319,7 +344,7 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
         ok();
       }
     };
-    addSelectionListenerForTexts( lsDef, wStepname );
+    addSelectionListenerForTexts( lsDef, wStepname, maxResults );
     addSelectionListenerForTextVars( lsDef, applicationName, accountEmail, keyFilename, customProfile );
   }
 
@@ -329,15 +354,14 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
         cancel();
       }
     };
-    // todo
-    //wCancel.addListener( SWT.Selection, lsCancel );
+    wCancel.addListener( SWT.Selection, lsCancel );
 
     lsOK = new Listener() {
       public void handleEvent( Event e ) {
         ok();
       }
     };
-    //wOK.addListener( SWT.Selection, lsOK );
+    wOK.addListener( SWT.Selection, lsOK );
   }
 
   private void installLinksListeners() {
