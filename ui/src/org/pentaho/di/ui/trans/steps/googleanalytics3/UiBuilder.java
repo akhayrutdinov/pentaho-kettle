@@ -2,6 +2,8 @@ package org.pentaho.di.ui.trans.steps.googleanalytics3;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
+import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
@@ -12,6 +14,7 @@ import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.ui.core.PropsUI;
 import org.pentaho.di.ui.core.widget.TextVar;
@@ -226,6 +229,43 @@ class UiBuilder {
 
   private void setDefaultWidgetStyle( Control... controls ) {
     Ga3InputStepDialog.setDefaultWidgetStyle( props, controls );
+  }
+
+
+  static void addModifyListenerForTexts( ModifyListener listener, Text... texts ) {
+    for ( Text text : texts ) {
+      text.addModifyListener( listener );
+    }
+  }
+
+  static void addModifyListenerForTextVars( ModifyListener listener, TextVar... textVars ) {
+    for ( TextVar textVar : textVars ) {
+      textVar.addModifyListener( listener );
+    }
+  }
+
+  static void addModifyListenerForComboBoxes( ModifyListener listener, CCombo... boxes ) {
+    for ( CCombo combo : boxes ) {
+      combo.addModifyListener( listener );
+    }
+  }
+
+  static void addSelectionListenerForTextVars( SelectionAdapter listener, TextVar... textVars ) {
+    for ( TextVar textVar : textVars ) {
+      textVar.addSelectionListener( listener );
+    }
+  }
+
+  static void addSelectionListenerForTexts( SelectionAdapter listener, Text... texts ) {
+    for ( Text text : texts ) {
+      text.addSelectionListener( listener );
+    }
+  }
+
+  static void setTextTo( TextVar control, String text ) {
+    if ( text != null ) {
+      control.setText( text );
+    }
   }
 
 

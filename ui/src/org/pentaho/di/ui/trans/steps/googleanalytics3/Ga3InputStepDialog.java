@@ -34,6 +34,8 @@ import org.pentaho.di.ui.core.PropsUI;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
+import static org.pentaho.di.ui.trans.steps.googleanalytics3.UiBuilder.*;
+
 /**
  * @author Andrey Khayrutdinov
  */
@@ -347,47 +349,11 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     input.setChanged();
   }
 
-  private static void addModifyListenerForTexts( ModifyListener listener, Text... texts ) {
-    for ( Text text : texts ) {
-      text.addModifyListener( listener );
-    }
-  }
-
-  private static void addModifyListenerForTextVars( ModifyListener listener, TextVar... textVars ) {
-    for ( TextVar textVar : textVars ) {
-      textVar.addModifyListener( listener );
-    }
-  }
-
-  private static void addModifyListenerForComboBoxes( ModifyListener listener, CCombo... boxes ) {
-    for ( CCombo combo : boxes ) {
-      combo.addModifyListener( listener );
-    }
-  }
-
-  private static void addSelectionListenerForTextVars( SelectionAdapter listener, TextVar... textVars ) {
-    for ( TextVar textVar : textVars ) {
-      textVar.addSelectionListener( listener );
-    }
-  }
-
-  private static void addSelectionListenerForTexts( SelectionAdapter listener, Text... texts ) {
-    for ( Text text : texts ) {
-      text.addSelectionListener( listener );
-    }
-  }
-
 
   private void pickupSettingsFromMeta() {
     setTextTo( applicationName, input.getApplicationName() );
     setTextTo( accountEmail, input.getAccountEmail() );
     // todo
-  }
-
-  private static void setTextTo( TextVar control, String text ) {
-    if ( text != null ) {
-      control.setText( text );
-    }
   }
 
   private void copySettingsToMeta() {
