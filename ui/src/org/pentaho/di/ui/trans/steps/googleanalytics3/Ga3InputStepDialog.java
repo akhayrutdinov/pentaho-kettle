@@ -43,6 +43,14 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
 
   public static final String REFERENCE_IDS_URL =
     "https://developers.google.com/analytics/devguides/reporting/core/v3/reference#ids";
+  public static final String REFERENCE_DIMENSIONS_URL =
+    "https://developers.google.com/analytics/devguides/reporting/core/v3/reference#dimensions";
+  public static final String REFERENCE_METRICS_URL =
+    "https://developers.google.com/analytics/devguides/reporting/core/v3/reference#metrics";
+  public static final String REFERENCE_FILTERS_URL =
+    "https://developers.google.com/analytics/devguides/reporting/core/v3/reference#filters";
+  public static final String REFERENCE_SORTERS_URL =
+    "https://developers.google.com/analytics/devguides/reporting/core/v3/reference#sort";
 
   private final Ga3InputStepMeta input;
 
@@ -58,6 +66,16 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
   private Button loadProfilesButton;
 
   private Group querySettings;
+  private TextVar startDate;
+  private TextVar endDate;
+  private TextVar dimensions;
+  private Link dimensionsLink;
+  private TextVar metrics;
+  private Link metricsLink;
+  private TextVar filters;
+  private Link filtersLink;
+  private TextVar sorters;
+  private Link sortersLink;
 
   private Text maxResults;
 
@@ -225,11 +243,67 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
 
   private void createQueryPanel( UiBuilder uiBuilder ) {
     createQuerySettingsGroup( uiBuilder );
+    createStartDateRow( uiBuilder );
+    createEndDateRow( uiBuilder );
+    createDimensionsRow( uiBuilder );
+    createMetricsRow( uiBuilder );
+    createFiltersRow( uiBuilder );
+    createSortersRow( uiBuilder );
+    // todo
+
+    querySettings.setTabList( new Control[] {
+      startDate, endDate, dimensions, metrics, filters, sorters } );
   }
 
   private void createQuerySettingsGroup( UiBuilder uiBuilder ) {
     querySettings = uiBuilder.createSettingsGroup( "Ga3Dialog.QueryGroup.Label", connectionSettings );
-    // todo
+  }
+
+  private void createStartDateRow( UiBuilder uiBuilder ) {
+    startDate = uiBuilder.createLabelWithTextVarRow( transMeta, querySettings, null, "Ga3Dialog.StartDate.Label",
+      "Ga3Dialog.StartDate.Tooltip" );
+  }
+
+  private void createEndDateRow( UiBuilder uiBuilder ) {
+    endDate = uiBuilder.createLabelWithTextVarRow( transMeta, querySettings, startDate, "Ga3Dialog.EndDate.Label",
+      "Ga3Dialog.EndDate.Tooltip"
+    );
+  }
+
+  private void createDimensionsRow( UiBuilder uiBuilder ) {
+    Pair<TextVar, Link> pair = uiBuilder
+      .createLabelWithTextAndLinkRow( transMeta, querySettings, endDate, "Ga3Dialog.Dimensions.Label",
+        "Ga3Dialog.Dimensions.Tooltip", "Ga3Dialog.Reference.Label" );
+
+    dimensions = pair.first;
+    dimensionsLink = pair.second;
+  }
+
+  private void createMetricsRow( UiBuilder uiBuilder ) {
+    Pair<TextVar, Link> pair = uiBuilder
+      .createLabelWithTextAndLinkRow( transMeta, querySettings, dimensions, "Ga3Dialog.Metrics.Label",
+        "Ga3Dialog.Metrics.Tooltip", "Ga3Dialog.Reference.Label" );
+
+    metrics = pair.first;
+    metricsLink = pair.second;
+  }
+
+  private void createFiltersRow( UiBuilder uiBuilder ) {
+    Pair<TextVar, Link> pair = uiBuilder
+      .createLabelWithTextAndLinkRow( transMeta, querySettings, metrics, "Ga3Dialog.Filters.Label",
+        "Ga3Dialog.Filters.Tooltip", "Ga3Dialog.Reference.Label" );
+
+    filters = pair.first;
+    filtersLink = pair.second;
+  }
+
+  private void createSortersRow( UiBuilder uiBuilder ) {
+    Pair<TextVar, Link> pair = uiBuilder
+      .createLabelWithTextAndLinkRow( transMeta, querySettings, filters, "Ga3Dialog.Sorters.Label",
+        "Ga3Dialog.Sorters.Tooltip", "Ga3Dialog.Reference.Label" );
+
+    sorters = pair.first;
+    sortersLink = pair.second;
   }
 
   private void createMaxResultsRow( int middle, int margin ) {
@@ -260,7 +334,8 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     wGet = uiBuilder.createButton( "System.Button.GetFields" );
     wPreview = uiBuilder.createButton( "System.Button.Preview" );
 
-    BaseStepDialog.positionBottomButtons( shell, new Button[] { wOK, wGet, wPreview, wCancel }, uiBuilder.margin, maxResults );
+    BaseStepDialog
+      .positionBottomButtons( shell, new Button[] { wOK, wGet, wPreview, wCancel }, uiBuilder.margin, maxResults );
   }
 
 
@@ -282,7 +357,8 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
 
   private void installModifyListeners() {
     addModifyListenerForTexts( this, wStepname, maxResults );
-    addModifyListenerForTextVars( this, applicationName, accountEmail, keyFilename, customProfile );
+    addModifyListenerForTextVars( this, applicationName, accountEmail, keyFilename, customProfile, startDate, endDate,
+      dimensions, metrics, sorters );
     addModifyListenerForComboBoxes( this, loadedProfiles );
   }
 
@@ -345,7 +421,8 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
       }
     };
     addSelectionListenerForTexts( lsDef, wStepname, maxResults );
-    addSelectionListenerForTextVars( lsDef, applicationName, accountEmail, keyFilename, customProfile );
+    addSelectionListenerForTextVars( lsDef, applicationName, accountEmail, keyFilename, customProfile, startDate,
+      endDate, dimensions, metrics, sorters );
   }
 
   private void installButtonsListeners() {
@@ -366,6 +443,10 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
 
   private void installLinksListeners() {
     customProfileLink.addListener( SWT.Selection, new BrowserLauncher( REFERENCE_IDS_URL ) );
+    dimensionsLink.addListener( SWT.Selection, new BrowserLauncher( REFERENCE_DIMENSIONS_URL ) );
+    metricsLink.addListener( SWT.Selection, new BrowserLauncher( REFERENCE_METRICS_URL ) );
+    filtersLink.addListener( SWT.Selection, new BrowserLauncher( REFERENCE_FILTERS_URL ) );
+    sortersLink.addListener( SWT.Selection, new BrowserLauncher( REFERENCE_SORTERS_URL ) );
   }
 
 

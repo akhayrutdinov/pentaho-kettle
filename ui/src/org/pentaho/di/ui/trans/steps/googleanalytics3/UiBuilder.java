@@ -76,15 +76,15 @@ class UiBuilder {
     TextVar textVar = new TextVar( space, composite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     textVar.setToolTipText( getString( tooltipI18n ) );
 
-    FormData textForData = new FormData();
+    FormData textFormData = new FormData();
     if ( upperControl == null ) {
-      textForData.top = new FormAttachment( 0, margin );
+      textFormData.top = new FormAttachment( 0, margin );
     } else {
-      textForData.top = new FormAttachment( upperControl, margin );
+      textFormData.top = new FormAttachment( upperControl, margin );
     }
-    textForData.left = new FormAttachment( middle, 0 );
-    textForData.right = new FormAttachment( 100, 0 );
-    textVar.setLayoutData( textForData );
+    textFormData.left = new FormAttachment( middle, 0 );
+    textFormData.right = new FormAttachment( 100, 0 );
+    textVar.setLayoutData( textFormData );
 
     setDefaultWidgetStyle( label, textVar );
 
