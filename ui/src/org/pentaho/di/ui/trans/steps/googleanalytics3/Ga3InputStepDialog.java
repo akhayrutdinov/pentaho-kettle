@@ -1,0 +1,454 @@
+package org.pentaho.di.ui.trans.steps.googleanalytics3;
+
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.CCombo;
+import org.eclipse.swt.events.ModifyEvent;
+import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.ShellAdapter;
+import org.eclipse.swt.events.ShellEvent;
+import org.eclipse.swt.graphics.Font;
+import org.eclipse.swt.graphics.FontData;
+import org.eclipse.swt.layout.FormAttachment;
+import org.eclipse.swt.layout.FormData;
+import org.eclipse.swt.layout.FormLayout;
+import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.FileDialog;
+import org.eclipse.swt.widgets.Group;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Link;
+import org.eclipse.swt.widgets.Listener;
+import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.Text;
+import org.pentaho.di.core.Const;
+import org.pentaho.di.i18n.BaseMessages;
+import org.pentaho.di.trans.TransMeta;
+import org.pentaho.di.trans.step.BaseStepMeta;
+import org.pentaho.di.trans.step.StepDialogInterface;
+import org.pentaho.di.trans.steps.googleanalytics3.Ga3InputStepMeta;
+import org.pentaho.di.ui.core.PropsUI;
+import org.pentaho.di.ui.core.widget.TextVar;
+import org.pentaho.di.ui.trans.step.BaseStepDialog;
+
+/**
+ * @author Andrey Khayrutdinov
+ */
+public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInterface, ModifyListener {
+
+  public static final String REFERENCE_IDS_URL =
+    "https://developers.google.com/analytics/devguides/reporting/core/v3/reference#ids";
+
+  private final Ga3InputStepMeta input;
+
+  private Group connectionSettings;
+  private TextVar applicationName;
+  private TextVar accountEmail;
+  private TextVar keyFilename;
+  private Button fileChooser;
+  private Button useCustomProfile;
+  private TextVar customProfile;
+  private Link customProfileLink;
+  private CCombo loadedProfiles;
+  private Button loadProfilesButton;
+
+  private Group querySettings;
+
+  public Ga3InputStepDialog( Shell parent, Object in, TransMeta transMeta, String sname ) {
+    super( parent, (BaseStepMeta) in, transMeta, sname );
+    input = (Ga3InputStepMeta) in;
+  }
+
+  @Override
+  public String open() {
+    backupChanged = input.hasChanged();
+
+    createShell( getParent() );
+    createContent();
+    setSize();
+
+    installListeners();
+
+    pickupSettingsFromMeta();
+
+    input.setChanged( backupChanged );
+
+    wStepname.setFocus();
+    shell.setTabList( new Control[] { wStepname, connectionSettings, querySettings } );
+
+    shell.open();
+
+    Display display = getParent().getDisplay();
+    while ( !shell.isDisposed() ) {
+      if ( !display.readAndDispatch() ) {
+        display.sleep();
+      }
+    }
+    return stepname;
+  }
+
+  private void createShell( Shell parent ) {
+    shell = new Shell( parent, SWT.DIALOG_TRIM | SWT.RESIZE | SWT.MIN | SWT.MAX );
+    setDefaultWidgetStyle( shell );
+    setShellImage( shell, input );
+
+    FormLayout formLayout = new FormLayout();
+    formLayout.marginWidth = Const.FORM_MARGIN;
+    formLayout.marginHeight = Const.FORM_MARGIN;
+
+    shell.setLayout( formLayout );
+    shell.setText( getString( "Ga3Dialog.Shell.Title" ) );
+  }
+
+  private void createContent() {
+    int middle = props.getMiddlePct();
+    int margin = Const.MARGIN;
+
+    UiBuilder uiBuilder = new UiBuilder( shell, props, middle, margin );
+
+    createStepNameRow( middle, margin );
+    createConnectionPanel( uiBuilder );
+    createQueryPanel( uiBuilder );
+    createMaxResultsRow( middle, margin );
+    createButtons( uiBuilder );
+  }
+
+  private void createStepNameRow( int middle, int margin ) {
+    wlStepname = new Label( shell, SWT.RIGHT );
+    wlStepname.setText( getString( "System.Label.StepName" ) );
+
+    fdlStepname = new FormData();
+    fdlStepname.left = new FormAttachment( 0, 0 );
+    fdlStepname.right = new FormAttachment( middle, -margin );
+    fdlStepname.top = new FormAttachment( 0, margin );
+    wlStepname.setLayoutData( fdlStepname );
+
+    wStepname = new Text( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wStepname.setText( stepname );
+
+    fdStepname = new FormData();
+    fdStepname.top = new FormAttachment( 0, margin );
+    fdStepname.left = new FormAttachment( middle, 0 );
+    fdStepname.right = new FormAttachment( 100, 0 );
+    wStepname.setLayoutData( fdStepname );
+
+    setDefaultWidgetStyle( wlStepname, wStepname );
+  }
+
+  private void createConnectionPanel( UiBuilder uiBuilder ) {
+    createConnectionSettingsGroup( uiBuilder );
+    createApplicationNameRow( uiBuilder );
+    createAccountEmailRow( uiBuilder );
+    createAccountKeyRow( uiBuilder.middle, uiBuilder.margin );
+    createCustomProfileRow( uiBuilder );
+    createLoadProfileRow( uiBuilder );
+
+    connectionSettings.setTabList( new Control[] {
+      applicationName, accountEmail, keyFilename, useCustomProfile, customProfile, loadedProfiles,
+      loadProfilesButton } );
+  }
+
+  private void createConnectionSettingsGroup( UiBuilder uiBuilder ) {
+    connectionSettings = uiBuilder.createSettingsGroup( "Ga3Dialog.ConnectGroup.Label", wStepname );
+  }
+
+  private void createApplicationNameRow( UiBuilder uiBuilder ) {
+    applicationName = uiBuilder
+      .createLabelWithTextVarRow( transMeta, connectionSettings, null, "Ga3Dialog.AppName.Label",
+        "Ga3Dialog.AppName.Tooltip" );
+  }
+
+  private void createAccountEmailRow( UiBuilder uiBuilder ) {
+    accountEmail = uiBuilder
+      .createLabelWithTextVarRow( transMeta, connectionSettings, applicationName, "Ga3Dialog.Email.Label",
+        "Ga3Dialog.Email.Tooltip" );
+  }
+
+  private void createAccountKeyRow( int middle, int margin ) {
+    fileChooser = new Button( connectionSettings, SWT.PUSH | SWT.CENTER );
+    fileChooser.setText( getString( "System.Button.Browse" ) );
+    fileChooser.setToolTipText( getString( "System.Tooltip.BrowseForFileOrDirAndAdd" ) );
+
+    FormData fdbFilename = new FormData();
+    fdbFilename.top = new FormAttachment( accountEmail, margin );
+    fdbFilename.right = new FormAttachment( 100, 0 );
+    fileChooser.setLayoutData( fdbFilename );
+
+    Label wlFilename = new Label( connectionSettings, SWT.RIGHT );
+    wlFilename.setText( getString( "Ga3Dialog.KeyFilename.Label" ) );
+
+    FormData fdlFilename = new FormData();
+    fdlFilename.top = new FormAttachment( accountEmail, margin );
+    fdlFilename.left = new FormAttachment( 0, 0 );
+    fdlFilename.right = new FormAttachment( middle, -margin );
+    wlFilename.setLayoutData( fdlFilename );
+
+    keyFilename = new TextVar( transMeta, connectionSettings, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    keyFilename.setToolTipText( getString( "Ga3Dialog.KeyFilename.Tooltip" ) );
+
+    FormData fdFilename = new FormData();
+    fdFilename.top = new FormAttachment( accountEmail, margin );
+    fdFilename.left = new FormAttachment( middle, 0 );
+    fdFilename.right = new FormAttachment( fileChooser, -margin );
+    keyFilename.setLayoutData( fdFilename );
+
+    setDefaultWidgetStyle( fileChooser, wlFilename, keyFilename );
+  }
+
+  private void createCustomProfileRow( UiBuilder uiBuilder ) {
+    UiBuilder.Triple<TextVar, Link, Button> triple =
+      uiBuilder.createLabelWithTextAndLinkAndCheckboxRow( transMeta, connectionSettings, keyFilename,
+        "Ga3Dialog.CustomProfile.Label", "Ga3Dialog.CustomProfile.Tooltip", "Ga3Dialog.Reference.Label" );
+
+    customProfile = triple.first;
+    customProfileLink = triple.second;
+    useCustomProfile = triple.third;
+  }
+
+  private void createLoadProfileRow( UiBuilder uiBuilder ) {
+    UiBuilder.Pair<CCombo, Button> pair =
+      uiBuilder.createLabelWithComboAndButtonRow( connectionSettings, customProfile, "Ga3Dialog.Profile.Label",
+        "Ga3Dialog.Profile.Tooltip", "Ga3Dialog.Profile.GetProfilesButton.Label",
+        "Ga3Dialog.Profile.GetProfilesButton.Tooltip" );
+
+    loadedProfiles = pair.first;
+    loadProfilesButton = pair.second;
+  }
+
+
+  private void createQueryPanel( UiBuilder uiBuilder ) {
+    createQuerySettingsGroup( uiBuilder );
+  }
+
+  private void createQuerySettingsGroup( UiBuilder uiBuilder ) {
+    querySettings = uiBuilder.createSettingsGroup( "Ga3Dialog.QueryGroup.Label", connectionSettings );
+    // todo
+  }
+
+  private void createMaxResultsRow( int middle, int margin ) {
+    // todo
+  }
+
+  private void createButtons( UiBuilder uiBuilder ) {
+    // todo
+  }
+
+
+  private void installListeners() {
+    installModifyListeners();
+    installFileChooserListener();
+    installCheckboxesListeners();
+    installQueryingListeners();
+    installLinksListeners();
+    installButtonsListeners();
+    installSelectionListeners();
+
+    shell.addShellListener( new ShellAdapter() {
+      public void shellClosed( ShellEvent e ) {
+        cancel();
+      }
+    } );
+  }
+
+  private void installModifyListeners() {
+    addModifyListenerForTexts( this, wStepname );
+    addModifyListenerForTextVars( this, applicationName, accountEmail, keyFilename, customProfile );
+    addModifyListenerForComboBoxes( this, loadedProfiles );
+  }
+
+  private void installFileChooserListener() {
+    fileChooser.addSelectionListener( new SelectionAdapter() {
+      public void widgetSelected( SelectionEvent e ) {
+        FileDialog dialog = new FileDialog( shell, SWT.OPEN );
+        if ( keyFilename.getText() != null && !isKeyLoaded() ) {
+          String fname = transMeta.environmentSubstitute( keyFilename.getText() );
+          dialog.setFileName( fname );
+        }
+
+        dialog.setFilterExtensions( new String[] { "*.p12", "*" } );
+        dialog.setFilterNames( new String[] {
+          getString( "Ga3Dialog.FileType.P12Files" ),
+          getString( "System.FileType.AllFiles" )
+        } );
+
+        if ( dialog.open() != null ) {
+          String str = dialog.getFilterPath() + System.getProperty( "file.separator" ) + dialog.getFileName();
+          keyFilename.setText( str );
+        }
+      }
+    } );
+  }
+
+  private void installCheckboxesListeners() {
+    useCustomProfile.addSelectionListener( new SelectionAdapter() {
+      public void widgetSelected( SelectionEvent e ) {
+        input.setChanged();
+        boolean selected = useCustomProfile.getSelection();
+        setCustomProfileEnabled( selected );
+        if ( selected ) {
+          customProfile.setFocus();
+        } else {
+          loadedProfiles.setFocus();
+        }
+      }
+    } );
+  }
+
+  private void installQueryingListeners() {
+    loadProfilesButton.addListener( SWT.Selection, new Listener() {
+      @Override
+      public void handleEvent( Event ev ) {
+        shell.getDisplay().asyncExec( new Runnable() {
+          @Override
+          public void run() {
+            // todo
+          }
+        } );
+      }
+    } );
+  }
+
+  private void installSelectionListeners() {
+    lsDef = new SelectionAdapter() {
+      public void widgetDefaultSelected( SelectionEvent e ) {
+        ok();
+      }
+    };
+    addSelectionListenerForTexts( lsDef, wStepname );
+    addSelectionListenerForTextVars( lsDef, applicationName, accountEmail, keyFilename, customProfile );
+  }
+
+  private void installButtonsListeners() {
+    lsCancel = new Listener() {
+      public void handleEvent( Event e ) {
+        cancel();
+      }
+    };
+    // todo
+    //wCancel.addListener( SWT.Selection, lsCancel );
+
+    lsOK = new Listener() {
+      public void handleEvent( Event e ) {
+        ok();
+      }
+    };
+    //wOK.addListener( SWT.Selection, lsOK );
+  }
+
+  private void installLinksListeners() {
+    customProfileLink.addListener( SWT.Selection, new BrowserLauncher( REFERENCE_IDS_URL ) );
+  }
+
+
+  public void modifyText( ModifyEvent e ) {
+    input.setChanged();
+  }
+
+  private static void addModifyListenerForTexts( ModifyListener listener, Text... texts ) {
+    for ( Text text : texts ) {
+      text.addModifyListener( listener );
+    }
+  }
+
+  private static void addModifyListenerForTextVars( ModifyListener listener, TextVar... textVars ) {
+    for ( TextVar textVar : textVars ) {
+      textVar.addModifyListener( listener );
+    }
+  }
+
+  private static void addModifyListenerForComboBoxes( ModifyListener listener, CCombo... boxes ) {
+    for ( CCombo combo : boxes ) {
+      combo.addModifyListener( listener );
+    }
+  }
+
+  private static void addSelectionListenerForTextVars( SelectionAdapter listener, TextVar... textVars ) {
+    for ( TextVar textVar : textVars ) {
+      textVar.addSelectionListener( listener );
+    }
+  }
+
+  private static void addSelectionListenerForTexts( SelectionAdapter listener, Text... texts ) {
+    for ( Text text : texts ) {
+      text.addSelectionListener( listener );
+    }
+  }
+
+
+  private void pickupSettingsFromMeta() {
+    setTextTo( applicationName, input.getApplicationName() );
+    setTextTo( accountEmail, input.getAccountEmail() );
+    // todo
+  }
+
+  private static void setTextTo( TextVar control, String text ) {
+    if ( text != null ) {
+      control.setText( text );
+    }
+  }
+
+  private void copySettingsToMeta() {
+    // todo
+  }
+
+
+  private void cancel() {
+    stepname = null;
+    input.setChanged( backupChanged );
+    dispose();
+  }
+
+  private void ok() {
+    copySettingsToMeta();
+    dispose();
+  }
+
+  private void setCustomProfileEnabled( boolean enabled ) {
+    customProfile.setEnabled( enabled );
+    customProfileLink.setEnabled( enabled );
+    loadedProfiles.setEnabled( !enabled );
+    loadProfilesButton.setEnabled( !enabled );
+  }
+
+  private void setKeyIsLoaded() {
+    keyFilename.setText( getString( "Ga3Dialog.KeyFilename.AlreadyLoaded" ) );
+
+    FontData fontData = keyFilename.getTextWidget().getFont().getFontData()[ 0 ];
+    Font italic = new Font( shell.getDisplay(), new FontData( fontData.getName(), fontData.getHeight(), SWT.ITALIC ) );
+    keyFilename.getTextWidget().setFont( italic );
+  }
+
+  private void setKeyIsEmpty() {
+    keyFilename.setText( "" );
+
+    FontData fontData = keyFilename.getFont().getFontData()[ 0 ];
+    Font normal = new Font( shell.getDisplay(), new FontData( fontData.getName(), fontData.getHeight(), SWT.NORMAL ) );
+    keyFilename.getTextWidget().setFont( normal );
+  }
+
+  private boolean isKeyLoaded() {
+    return getString( "Ga3Dialog.KeyFilename.AlreadyLoaded" ).equals( keyFilename.getText() );
+  }
+
+
+  static String getString( String key ) {
+    return BaseMessages.getString( Ga3InputStepMeta.class, key );
+  }
+
+  static String getString( String key, Object... params ) {
+    return BaseMessages.getString( Ga3InputStepMeta.class, key, params );
+  }
+
+  private void setDefaultWidgetStyle( Control... controls ) {
+    setDefaultWidgetStyle( props, controls );
+  }
+
+  static void setDefaultWidgetStyle( PropsUI props, Control... controls ) {
+    for ( Control control : controls ) {
+      props.setLook( control );
+    }
+  }
+}
