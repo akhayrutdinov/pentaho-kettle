@@ -73,11 +73,10 @@ public class Ga3InputStepMeta extends BaseStepMeta implements StepMetaInterface 
 
   @Override
   public void setDefault() {
-    DateFormat df = new SimpleDateFormat( DATE_FORMAT );
-
     applicationName = DEFAULT_APP_NAME;
     accountEmail = "your.service-account.email-address@developer.gserviceaccount.com ";
 
+    DateFormat df = new SimpleDateFormat( DATE_FORMAT );
     long aWeekAgo = System.currentTimeMillis() - TimeUnit.DAYS.toMillis( 7 );
     startDate = df.format( new Date( aWeekAgo ) );
     endDate = df.format( new Date() );

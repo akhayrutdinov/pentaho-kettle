@@ -8,6 +8,7 @@ import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.ShellAdapter;
 import org.eclipse.swt.events.ShellEvent;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.layout.FormAttachment;
@@ -22,6 +23,7 @@ import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Listener;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Const;
@@ -33,6 +35,9 @@ import org.pentaho.di.trans.steps.googleanalytics3.Ga3InputStepMeta;
 import org.pentaho.di.ui.core.PropsUI;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
+
+import java.io.FileInputStream;
+import java.io.IOException;
 
 import static org.pentaho.di.ui.trans.steps.googleanalytics3.UiBuilder.*;
 
@@ -59,6 +64,7 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
   private TextVar accountEmail;
   private TextVar keyFilename;
   private Button fileChooser;
+  private Label keyStatus;
   private Button useCustomProfile;
   private TextVar customProfile;
   private Link customProfileLink;
@@ -165,6 +171,7 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     createApplicationNameRow( uiBuilder );
     createAccountEmailRow( uiBuilder );
     createAccountKeyRow( uiBuilder.middle, uiBuilder.margin );
+    createAccountKeyStatusRow( uiBuilder.middle, uiBuilder.margin );
     createCustomProfileRow( uiBuilder );
     createLoadProfileRow( uiBuilder );
 
@@ -220,9 +227,33 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     setDefaultWidgetStyle( fileChooser, wlFilename, keyFilename );
   }
 
+  private void createAccountKeyStatusRow( int middle, int margin ) {
+    Label label = new Label( connectionSettings, SWT.RIGHT );
+
+    FormData labelFormData = new FormData();
+    labelFormData.top = new FormAttachment( keyFilename, margin );
+    labelFormData.left = new FormAttachment( 0, 0 );
+    labelFormData.right = new FormAttachment( middle, -margin );
+    label.setLayoutData( labelFormData );
+
+    keyStatus = new Label( connectionSettings, SWT.SINGLE | SWT.LEFT );
+
+    FormData textFormData = new FormData();
+    textFormData.top = new FormAttachment( keyFilename, margin );
+    textFormData.left = new FormAttachment( middle, 0 );
+    textFormData.right = new FormAttachment( 100, 0 );
+    keyStatus.setLayoutData( textFormData );
+
+    setDefaultWidgetStyle( label, keyStatus );
+
+    FontData fontData = keyStatus.getFont().getFontData()[ 0 ];
+    Font bold = new Font( shell.getDisplay(), new FontData( fontData.getName(), fontData.getHeight(), SWT.BOLD ) );
+    keyStatus.setFont( bold );
+  }
+
   private void createCustomProfileRow( UiBuilder uiBuilder ) {
     UiBuilder.Triple<TextVar, Link, Button> triple =
-      uiBuilder.createLabelWithTextAndLinkAndCheckboxRow( transMeta, connectionSettings, keyFilename,
+      uiBuilder.createLabelWithTextAndLinkAndCheckboxRow( transMeta, connectionSettings, keyStatus,
         "Ga3Dialog.CustomProfile.Label", "Ga3Dialog.CustomProfile.Tooltip", "Ga3Dialog.Reference.Label" );
 
     customProfile = triple.first;
@@ -360,15 +391,22 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     addModifyListenerForTextVars( this, applicationName, accountEmail, keyFilename, customProfile, startDate, endDate,
       dimensions, metrics, sorters );
     addModifyListenerForComboBoxes( this, loadedProfiles );
+
+    keyFilename.addModifyListener( new ModifyListener() {
+      @Override
+      public void modifyText( ModifyEvent modifyEvent ) {
+        updateKeyStatus();
+      }
+    } );
   }
 
   private void installFileChooserListener() {
     fileChooser.addSelectionListener( new SelectionAdapter() {
       public void widgetSelected( SelectionEvent e ) {
         FileDialog dialog = new FileDialog( shell, SWT.OPEN );
-        if ( keyFilename.getText() != null && !isKeyLoaded() ) {
-          String fname = transMeta.environmentSubstitute( keyFilename.getText() );
-          dialog.setFileName( fname );
+        if ( keyFilename.getText() != null ) {
+          String existingPath = transMeta.environmentSubstitute( keyFilename.getText() );
+          dialog.setFileName( existingPath );
         }
 
         dialog.setFilterExtensions( new String[] { "*.p12", "*" } );
@@ -378,8 +416,17 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
         } );
 
         if ( dialog.open() != null ) {
-          String str = dialog.getFilterPath() + System.getProperty( "file.separator" ) + dialog.getFileName();
-          keyFilename.setText( str );
+          if ( getKeyStatus() == KeyStatus.LOADED ) {
+            MessageBox box = new MessageBox( shell, SWT.YES | SWT.NO | SWT.ICON_WARNING );
+            box.setText( getString( "Ga3Dialog.KeyFilename.Overwrite.Caption" ) );
+            box.setMessage( getString( "Ga3Dialog.KeyFilename.Overwrite.Text" ) );
+            if ( box.open() != SWT.YES ) {
+              return;
+            }
+          }
+          String keyPath = dialog.getFilterPath() + System.getProperty( "file.separator" ) + dialog.getFileName();
+          keyFilename.setText( keyPath );
+          updateKeyStatus();
         }
       }
     } );
@@ -459,10 +506,30 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     setTextTo( applicationName, input.getApplicationName() );
     setTextTo( accountEmail, input.getAccountEmail() );
     // todo
+
+    updateKeyStatus();
   }
 
   private void copySettingsToMeta() {
     // todo
+
+    if ( getKeyStatus() == KeyStatus.SPECIFIED ) {
+      loadNewKey( transMeta.environmentSubstitute( keyFilename.getText() ) );
+    }
+  }
+
+  private void loadNewKey( String path ) {
+    try {
+      FileInputStream fis = new FileInputStream( path );
+      try {
+        input.loadKeyFrom( fis );
+      } finally {
+        fis.close();
+      }
+    } catch ( IOException e ) {
+      logError( "Trying to load a secret key", e );
+      throw new RuntimeException( e );
+    }
   }
 
 
@@ -484,24 +551,35 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     loadProfilesButton.setEnabled( !enabled );
   }
 
-  private void setKeyIsLoaded() {
-    keyFilename.setText( getString( "Ga3Dialog.KeyFilename.AlreadyLoaded" ) );
-
-    FontData fontData = keyFilename.getTextWidget().getFont().getFontData()[ 0 ];
-    Font italic = new Font( shell.getDisplay(), new FontData( fontData.getName(), fontData.getHeight(), SWT.ITALIC ) );
-    keyFilename.getTextWidget().setFont( italic );
+  private void updateKeyStatus() {
+    String text;
+    Color color;
+    switch( getKeyStatus() ) {
+      case LOADED:
+        text = getString( "Ga3Dialog.KeyStatus.Loaded" );
+        color = new Color( shell.getDisplay(), 0, 255, 0 );
+        break;
+      case SPECIFIED:
+        text = getString( "Ga3Dialog.KeyStatus.Specified" );
+        color = new Color( shell.getDisplay(), 0, 0, 0 );
+        break;
+      case ABSENT:
+        text = getString( "Ga3Dialog.KeyStatus.Absent" );
+        color = new Color( shell.getDisplay(), 255, 0, 0 );
+        break;
+      default:
+        throw new IllegalStateException();
+    }
+    keyStatus.setText( text );
+    keyStatus.setForeground( color );
   }
 
-  private void setKeyIsEmpty() {
-    keyFilename.setText( "" );
-
-    FontData fontData = keyFilename.getFont().getFontData()[ 0 ];
-    Font normal = new Font( shell.getDisplay(), new FontData( fontData.getName(), fontData.getHeight(), SWT.NORMAL ) );
-    keyFilename.getTextWidget().setFont( normal );
-  }
-
-  private boolean isKeyLoaded() {
-    return getString( "Ga3Dialog.KeyFilename.AlreadyLoaded" ).equals( keyFilename.getText() );
+  private KeyStatus getKeyStatus() {
+    if ( Const.isEmpty( keyFilename.getText() ) ) {
+      return input.isKeyLoaded() ? KeyStatus.LOADED : KeyStatus.ABSENT;
+    } else {
+      return KeyStatus.SPECIFIED;
+    }
   }
 
 
@@ -521,5 +599,9 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     for ( Control control : controls ) {
       props.setLook( control );
     }
+  }
+
+  private static enum KeyStatus {
+    LOADED, SPECIFIED, ABSENT
   }
 }
