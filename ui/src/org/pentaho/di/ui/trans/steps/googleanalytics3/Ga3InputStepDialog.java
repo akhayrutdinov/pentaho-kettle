@@ -508,6 +508,14 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     // todo
 
     updateKeyStatus();
+
+    if ( !Const.isEmpty( input.getProfileId() ) ) {
+      customProfile.setText( input.getProfileId() );
+      useCustomProfile.setSelection( true );
+    } else {
+      setCustomProfileEnabled( false );
+      useCustomProfile.setSelection( false );
+    }
   }
 
   private void copySettingsToMeta() {
