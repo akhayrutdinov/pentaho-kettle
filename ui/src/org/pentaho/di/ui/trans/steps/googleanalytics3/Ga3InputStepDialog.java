@@ -1,5 +1,7 @@
 package org.pentaho.di.ui.trans.steps.googleanalytics3;
 
+import com.google.api.services.analytics.model.Account;
+import com.google.api.services.analytics.model.Profile;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.ModifyEvent;
@@ -32,12 +34,16 @@ import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
 import org.pentaho.di.trans.steps.googleanalytics3.Ga3InputStepMeta;
+import org.pentaho.di.trans.steps.googleanalytics3.GaApi3Facade;
 import org.pentaho.di.ui.core.PropsUI;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.pentaho.di.ui.trans.steps.googleanalytics3.UiBuilder.*;
 
@@ -57,7 +63,12 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
   public static final String REFERENCE_SORTERS_URL =
     "https://developers.google.com/analytics/devguides/reporting/core/v3/reference#sort";
 
+
+  private static final String LOADED_PROFILES_ITEM_TEMPLATE = "%s - profile: %s";
+
   private final Ga3InputStepMeta input;
+
+  private final Map<String, String> profilesMapping;
 
   private Group connectionSettings;
   private TextVar applicationName;
@@ -88,6 +99,7 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
   public Ga3InputStepDialog( Shell parent, Object in, TransMeta transMeta, String sname ) {
     super( parent, (BaseStepMeta) in, transMeta, sname );
     input = (Ga3InputStepMeta) in;
+    profilesMapping = new HashMap<String, String>();
   }
 
   @Override
@@ -454,7 +466,12 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
         shell.getDisplay().asyncExec( new Runnable() {
           @Override
           public void run() {
-            // todo
+            try {
+              loadProfiles();
+            } catch ( Exception e ) {
+              logError( "Loading profiles", e );
+              throw new RuntimeException( e );
+            }
           }
         } );
       }
@@ -503,12 +520,19 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
 
 
   private void pickupSettingsFromMeta() {
+    pickupCredentialSettings();
+    pickupProfileSettings();
+
+    // todo
+  }
+
+  private void pickupCredentialSettings() {
     setTextTo( applicationName, input.getApplicationName() );
     setTextTo( accountEmail, input.getAccountEmail() );
-    // todo
-
     updateKeyStatus();
+  }
 
+  private void pickupProfileSettings() {
     if ( !Const.isEmpty( input.getProfileId() ) ) {
       customProfile.setText( input.getProfileId() );
       useCustomProfile.setSelection( true );
@@ -519,8 +543,14 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
   }
 
   private void copySettingsToMeta() {
+    copyCredentialSettings();
+    copyProfileSettings();
     // todo
+  }
 
+  private void copyCredentialSettings() {
+    input.setApplicationName( applicationName.getText() );
+    input.setAccountEmail( accountEmail.getText() );
     if ( getKeyStatus() == KeyStatus.SPECIFIED ) {
       loadNewKey( transMeta.environmentSubstitute( keyFilename.getText() ) );
     }
@@ -537,6 +567,15 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     } catch ( IOException e ) {
       logError( "Trying to load a secret key", e );
       throw new RuntimeException( e );
+    }
+  }
+
+  private void copyProfileSettings() {
+    if ( useCustomProfile.getSelection() ) {
+      input.setProfileId( customProfile.getText() );
+    } else {
+      String item = loadedProfiles.getText();
+      input.setProfileId( profilesMapping.get( item ) );
     }
   }
 
@@ -588,6 +627,40 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     } else {
       return KeyStatus.SPECIFIED;
     }
+  }
+
+  private void loadProfiles() throws Exception {
+    List<Profile> profiles = loadProfilesFromFacade();
+    String[] items = prepareComboBoxItems( profiles );
+
+    loadedProfiles.setItems( items );
+    if ( items.length > 0 ) {
+      loadedProfiles.select( 0 );
+    }
+  }
+
+  private List<Profile> loadProfilesFromFacade() throws Exception {
+    copyCredentialSettings();
+
+    GaApi3Facade facade = input.getOrCreateGaFacade();
+    Account account = facade.getAccount();
+    if ( account == null ) {
+      throw new IllegalStateException( getString( "Ga3Dialog.Profile.GetProfilesButton.NoAccountFound" ) );
+    }
+    return facade.getProfilesOf( account.getId() );
+  }
+
+  private String[] prepareComboBoxItems( List<Profile> profiles ) {
+    profilesMapping.clear();
+    String[] items = new String[ profiles.size() ];
+    int index = 0;
+    for ( Profile profile : profiles ) {
+      String profileId = profile.getId();
+      String itemStr = String.format( LOADED_PROFILES_ITEM_TEMPLATE, profileId, profile.getName() );
+      items[ index++ ] = itemStr;
+      profilesMapping.put( itemStr, profileId );
+    }
+    return items;
   }
 
 

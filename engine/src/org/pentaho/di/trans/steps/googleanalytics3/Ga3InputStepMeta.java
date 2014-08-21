@@ -71,6 +71,8 @@ public class Ga3InputStepMeta extends BaseStepMeta implements StepMetaInterface 
 
   private String maxResults;
 
+  private GaApi3Facade facade;
+
   @Override
   public void setDefault() {
     applicationName = DEFAULT_APP_NAME;
@@ -282,5 +284,13 @@ public class Ga3InputStepMeta extends BaseStepMeta implements StepMetaInterface 
 
   public boolean isKeyLoaded() {
     return !Const.isEmpty( key );
+  }
+
+
+  public GaApi3Facade getOrCreateGaFacade() throws Exception {
+    if ( facade == null ) {
+      facade = new GaApi3Facade( applicationName, accountEmail, Base64.decodeBase64( key ) );
+    }
+    return facade;
   }
 }
