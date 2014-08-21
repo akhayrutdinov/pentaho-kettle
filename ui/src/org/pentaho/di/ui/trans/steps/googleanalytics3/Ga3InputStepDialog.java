@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.pentaho.di.ui.trans.steps.googleanalytics3.UiBuilder.*;
+import static org.pentaho.di.ui.util.UiUtils.*;
 
 /**
  * @author Andrey Khayrutdinov
@@ -460,7 +461,8 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
 
   private void installModifyListeners() {
     addModifyListenerForTexts( this, wStepname, maxResults );
-    addModifyListenerForTextVars( this, applicationName, accountEmail, keyFilename, customProfile, startDate, endDate,
+    addModifyListenerForTextVars( this, applicationName, accountEmail, keyFilename, customProfile, startDate,
+      endDate,
       dimensions, metrics, sorters, customSegment );
     addModifyListenerForComboBoxes( this, loadedProfiles, loadedSegments );
 
@@ -736,31 +738,19 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
   }
 
   private void setCustomProfileEnabled( boolean enabled ) {
-    customProfile.setEnabled( enabled );
-    customProfileLink.setEnabled( enabled );
-    loadedProfiles.setEnabled( !enabled );
-    loadProfilesButton.setEnabled( !enabled );
+    setEnabled( enabled, customProfile, customProfileLink );
+    setEnabled( !enabled, loadedProfiles, loadProfilesButton );
   }
 
   private void updateCustomSegmentAvailability() {
     if ( useSegment.getSelection() ) {
-      useCustomSegment.setEnabled( true );
-      customSegment.setEnabled( true );
-      customSegmentLink.setEnabled( true );
-      loadedSegments.setEnabled( true );
-      loadSegmentsButton.setEnabled( true );
+      setEnabled( true, useCustomSegment, customSegment, customSegmentLink, loadedSegments, loadSegmentsButton );
 
       boolean setDirectly = useCustomSegment.getSelection();
-      customSegment.setEnabled( setDirectly );
-      customSegmentLink.setEnabled( setDirectly );
-      loadedSegments.setEnabled( !setDirectly );
-      loadSegmentsButton.setEnabled( !setDirectly );
+      setEnabled( setDirectly, customSegment, customSegmentLink );
+      setEnabled( !setDirectly, loadedSegments, loadSegmentsButton );
     } else {
-      useCustomSegment.setEnabled( false );
-      customSegment.setEnabled( false );
-      customSegmentLink.setEnabled( false );
-      loadedSegments.setEnabled( false );
-      loadSegmentsButton.setEnabled( false );
+      setEnabled( false, useCustomSegment, customSegment, customSegmentLink, loadedSegments, loadSegmentsButton );
     }
   }
 
