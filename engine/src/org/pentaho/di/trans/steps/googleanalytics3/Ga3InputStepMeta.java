@@ -49,6 +49,7 @@ public class Ga3InputStepMeta extends BaseStepMeta implements StepMetaInterface 
   public static final String F_METRICS = "metrics";
   public static final String F_FILTERS = "filters";
   public static final String F_SORTERS = "sorters";
+  public static final String F_SEGMENT = "segment";
 
   public static final String F_MAX_RESULTS = "maxResults";
 
@@ -68,6 +69,7 @@ public class Ga3InputStepMeta extends BaseStepMeta implements StepMetaInterface 
   private String metrics;
   private String filters;
   private String sorters;
+  private String segment;
 
   private String maxResults;
 
@@ -85,7 +87,7 @@ public class Ga3InputStepMeta extends BaseStepMeta implements StepMetaInterface 
 
     metrics = "ga:sessions,ga:bounces";
 
-    // dimensions, filters, sorters are optional
+    // dimensions, filters, sorters, segment are optional
   }
 
   @Override
@@ -113,6 +115,7 @@ public class Ga3InputStepMeta extends BaseStepMeta implements StepMetaInterface 
       .append( addTagValue( F_METRICS, metrics ) )
       .append( addTagValue( F_FILTERS, filters ) )
       .append( addTagValue( F_SORTERS, sorters ) )
+      .append( addTagValue( F_SEGMENT, segment ) )
       .append( addTagValue( F_MAX_RESULTS, maxResults ) )
       .toString();
   }
@@ -131,6 +134,7 @@ public class Ga3InputStepMeta extends BaseStepMeta implements StepMetaInterface 
       metrics = getTagValue( stepnode, F_METRICS );
       filters = getTagValue( stepnode, F_FILTERS );
       sorters = getTagValue( stepnode, F_SORTERS );
+      segment = getTagValue( stepnode, F_SEGMENT );
       maxResults = getTagValue( stepnode, F_MAX_RESULTS );
     } catch ( Exception e ) {
       throw new KettleXMLException( BaseMessages.getString( PKG, "Ga3.Error.UnableToReadFromXML" ), e );
@@ -151,6 +155,7 @@ public class Ga3InputStepMeta extends BaseStepMeta implements StepMetaInterface 
       rep.saveStepAttribute( id_transformation, id_step, F_METRICS, metrics );
       rep.saveStepAttribute( id_transformation, id_step, F_FILTERS, filters );
       rep.saveStepAttribute( id_transformation, id_step, F_SORTERS, sorters );
+      rep.saveStepAttribute( id_transformation, id_step, F_SEGMENT, segment );
       rep.saveStepAttribute( id_transformation, id_step, F_MAX_RESULTS, maxResults );
     } catch ( Exception e ) {
       throw new KettleException( BaseMessages.getString( PKG, "Ga3.Error.UnableToSaveToRep" ) + id_step, e );
@@ -171,6 +176,7 @@ public class Ga3InputStepMeta extends BaseStepMeta implements StepMetaInterface 
       metrics = rep.getStepAttributeString( id_step, F_METRICS );
       filters = rep.getStepAttributeString( id_step, F_FILTERS );
       sorters = rep.getStepAttributeString( id_step, F_SORTERS );
+      segment = rep.getStepAttributeString( id_step, F_SEGMENT );
       maxResults = rep.getStepAttributeString( id_step, F_MAX_RESULTS );
     } catch ( Exception e ) {
       throw new KettleException( BaseMessages.getString( PKG, "Ga3.Error.UnableToReadFromRep" ), e );
@@ -248,6 +254,14 @@ public class Ga3InputStepMeta extends BaseStepMeta implements StepMetaInterface 
 
   public void setSorters( String sorters ) {
     this.sorters = sorters;
+  }
+
+  public String getSegment() {
+    return segment;
+  }
+
+  public void setSegment( String segment ) {
+    this.segment = segment;
   }
 
   public String getMaxResults() {

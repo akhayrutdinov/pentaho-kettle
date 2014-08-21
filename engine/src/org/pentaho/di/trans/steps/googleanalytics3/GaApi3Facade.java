@@ -10,6 +10,7 @@ import com.google.api.services.analytics.AnalyticsScopes;
 import com.google.api.services.analytics.model.Account;
 import com.google.api.services.analytics.model.Profile;
 import com.google.api.services.analytics.model.Profiles;
+import com.google.api.services.analytics.model.Segment;
 import com.google.api.services.analytics.model.Webproperties;
 import com.google.api.services.analytics.model.Webproperty;
 import org.apache.commons.io.IOUtils;
@@ -84,5 +85,9 @@ public class GaApi3Facade {
       result.addAll( profiles.getItems() );
     }
     return result;
+  }
+
+  public List<Segment> getSegments() throws IOException {
+    return analytics.management().segments().list().execute().getItems();
   }
 }

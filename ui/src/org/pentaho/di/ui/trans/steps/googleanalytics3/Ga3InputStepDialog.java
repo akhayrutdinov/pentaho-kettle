@@ -2,6 +2,7 @@ package org.pentaho.di.ui.trans.steps.googleanalytics3;
 
 import com.google.api.services.analytics.model.Account;
 import com.google.api.services.analytics.model.Profile;
+import com.google.api.services.analytics.model.Segment;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.ModifyEvent;
@@ -62,13 +63,17 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     "https://developers.google.com/analytics/devguides/reporting/core/v3/reference#filters";
   public static final String REFERENCE_SORTERS_URL =
     "https://developers.google.com/analytics/devguides/reporting/core/v3/reference#sort";
+  public static final String REFERENCE_SEGMENTS_URL =
+    "https://developers.google.com/analytics/devguides/reporting/core/v3/reference#segment";
 
 
   private static final String LOADED_PROFILES_ITEM_TEMPLATE = "%s - profile: %s";
+  private static final String LOADED_SEGMENTS_ITEM_TEMPLATE = "%2$s (%1$s)";
 
   private final Ga3InputStepMeta input;
 
   private final Map<String, String> profilesMapping;
+  private final Map<String, String> segmentsMapping;
 
   private Group connectionSettings;
   private TextVar applicationName;
@@ -93,6 +98,12 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
   private Link filtersLink;
   private TextVar sorters;
   private Link sortersLink;
+  private Button useSegment;
+  private Button useCustomSegment;
+  private TextVar customSegment;
+  private Link customSegmentLink;
+  private CCombo loadedSegments;
+  private Button loadSegmentsButton;
 
   private Text maxResults;
 
@@ -100,6 +111,7 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     super( parent, (BaseStepMeta) in, transMeta, sname );
     input = (Ga3InputStepMeta) in;
     profilesMapping = new HashMap<String, String>();
+    segmentsMapping = new HashMap<String, String>();
   }
 
   @Override
@@ -292,10 +304,15 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     createMetricsRow( uiBuilder );
     createFiltersRow( uiBuilder );
     createSortersRow( uiBuilder );
+    createUseSegmentRow( uiBuilder.middle, uiBuilder.margin );
+    createCustomSegmentRow( uiBuilder );
+    createLoadSegmentsRow( uiBuilder );
     // todo
 
     querySettings.setTabList( new Control[] {
-      startDate, endDate, dimensions, metrics, filters, sorters } );
+      startDate, endDate, dimensions, metrics, filters, sorters, useSegment, useCustomSegment, customSegment,
+      loadedSegments,
+      loadSegmentsButton } );
   }
 
   private void createQuerySettingsGroup( UiBuilder uiBuilder ) {
@@ -349,6 +366,48 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     sortersLink = pair.second;
   }
 
+  private void createUseSegmentRow( int middle, int margin ) {
+    Label label = new Label( querySettings, SWT.RIGHT );
+    label.setText( getString( "Ga3Dialog.UseSegment.Label" ) );
+
+    FormData labelFormData = new FormData();
+    labelFormData.top = new FormAttachment( sorters, margin );
+    labelFormData.left = new FormAttachment( 0, 0 );
+    labelFormData.right = new FormAttachment( middle, -margin );
+    label.setLayoutData( labelFormData );
+
+    useSegment = new Button( querySettings, SWT.CHECK );
+    useSegment.pack( true );
+
+    FormData checkBoxFormData = new FormData();
+    checkBoxFormData.top = new FormAttachment( sorters, margin );
+    checkBoxFormData.left = new FormAttachment( middle, 0 );
+    useSegment.setLayoutData( checkBoxFormData );
+
+    setDefaultWidgetStyle( label, useSegment );
+  }
+
+  private void createCustomSegmentRow( UiBuilder uiBuilder ) {
+    UiBuilder.Triple<TextVar, Link, Button> triple =
+      uiBuilder.createLabelWithTextAndLinkAndCheckboxRow( transMeta, querySettings, useSegment,
+        "Ga3Dialog.CustomSegment.Label", "Ga3Dialog.CustomSegment.Tooltip", "Ga3Dialog.Reference.Label" );
+
+    customSegment = triple.first;
+    customSegmentLink = triple.second;
+    useCustomSegment = triple.third;
+  }
+
+  private void createLoadSegmentsRow( UiBuilder uiBuilder ) {
+    UiBuilder.Pair<CCombo, Button> pair =
+      uiBuilder.createLabelWithComboAndButtonRow( querySettings, customSegment, "Ga3Dialog.Segment.Label",
+        "Ga3Dialog.Segment.Tooltip", "Ga3Dialog.Segment.GetSegmentsButton.Label",
+        "Ga3Dialog.Segment.GetSegmentsButton.Tooltip" );
+
+    loadedSegments = pair.first;
+    loadSegmentsButton = pair.second;
+  }
+
+
   private void createMaxResultsRow( int middle, int margin ) {
     Label wlMaxResults = new Label( shell, SWT.RIGHT );
     wlMaxResults.setText( getString( "Ga3Dialog.MaxResults.Label" ) );
@@ -370,6 +429,7 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
 
     setDefaultWidgetStyle( wlMaxResults, maxResults );
   }
+
 
   private void createButtons( UiBuilder uiBuilder ) {
     wOK = uiBuilder.createButton( "System.Button.OK" );
@@ -401,8 +461,8 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
   private void installModifyListeners() {
     addModifyListenerForTexts( this, wStepname, maxResults );
     addModifyListenerForTextVars( this, applicationName, accountEmail, keyFilename, customProfile, startDate, endDate,
-      dimensions, metrics, sorters );
-    addModifyListenerForComboBoxes( this, loadedProfiles );
+      dimensions, metrics, sorters, customSegment );
+    addModifyListenerForComboBoxes( this, loadedProfiles, loadedSegments );
 
     keyFilename.addModifyListener( new ModifyListener() {
       @Override
@@ -457,6 +517,34 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
         }
       }
     } );
+
+    useCustomSegment.addSelectionListener( new SelectionAdapter() {
+      @Override
+      public void widgetSelected( SelectionEvent selectionEvent ) {
+        input.setChanged();
+        updateCustomSegmentAvailability();
+        if ( useCustomSegment.getSelection() ) {
+          customSegment.setFocus();
+        } else {
+          loadedSegments.setFocus();
+        }
+      }
+    } );
+
+    useSegment.addSelectionListener( new SelectionAdapter() {
+      @Override
+      public void widgetSelected( SelectionEvent selectionEvent ) {
+        input.setChanged();
+        updateCustomSegmentAvailability();
+        if ( useSegment.getSelection() ) {
+          if ( useCustomSegment.getSelection() ) {
+            customSegment.setFocus();
+          } else {
+            loadedSegments.setFocus();
+          }
+        }
+      }
+    } );
   }
 
   private void installQueryingListeners() {
@@ -476,6 +564,23 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
         } );
       }
     } );
+
+    loadSegmentsButton.addListener( SWT.Selection, new Listener() {
+      @Override
+      public void handleEvent( Event ev ) {
+        shell.getDisplay().asyncExec( new Runnable() {
+          @Override
+          public void run() {
+            try {
+              loadSegments();
+            } catch ( Exception e ) {
+              logError( "Loading segments", e );
+              throw new RuntimeException( e );
+            }
+          }
+        } );
+      }
+    } );
   }
 
   private void installSelectionListeners() {
@@ -486,7 +591,7 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     };
     addSelectionListenerForTexts( lsDef, wStepname, maxResults );
     addSelectionListenerForTextVars( lsDef, applicationName, accountEmail, keyFilename, customProfile, startDate,
-      endDate, dimensions, metrics, sorters );
+      endDate, dimensions, metrics, sorters, customSegment );
   }
 
   private void installButtonsListeners() {
@@ -511,6 +616,7 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     metricsLink.addListener( SWT.Selection, new BrowserLauncher( REFERENCE_METRICS_URL ) );
     filtersLink.addListener( SWT.Selection, new BrowserLauncher( REFERENCE_FILTERS_URL ) );
     sortersLink.addListener( SWT.Selection, new BrowserLauncher( REFERENCE_SORTERS_URL ) );
+    customSegmentLink.addListener( SWT.Selection, new BrowserLauncher( REFERENCE_SEGMENTS_URL ) );
   }
 
 
@@ -522,7 +628,7 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
   private void pickupSettingsFromMeta() {
     pickupCredentialSettings();
     pickupProfileSettings();
-
+    pickupQuerySettings();
     // todo
   }
 
@@ -542,9 +648,26 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     }
   }
 
+  private void pickupQuerySettings() {
+    setTextTo( startDate, input.getStartDate() );
+    setTextTo( endDate, input.getEndDate() );
+    setTextTo( dimensions, input.getDimensions() );
+    setTextTo( metrics, input.getMetrics() );
+    setTextTo( filters, input.getFilters() );
+    setTextTo( sorters, input.getSorters() );
+
+    if ( !Const.isEmpty( input.getSegment() ) ) {
+      customSegment.setText( input.getSegment() );
+      useSegment.setSelection( true );
+      useCustomSegment.setSelection( true );
+    }
+    updateCustomSegmentAvailability();
+  }
+
   private void copySettingsToMeta() {
     copyCredentialSettings();
     copyProfileSettings();
+    copyQuerySettings();
     // todo
   }
 
@@ -579,6 +702,27 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     }
   }
 
+  private void copyQuerySettings() {
+    input.setStartDate( startDate.getText() );
+    input.setEndDate( endDate.getText() );
+    input.setDimensions( dimensions.getText() );
+    input.setMetrics( metrics.getText() );
+    input.setFilters( filters.getText() );
+    input.setSorters( sorters.getText() );
+
+    if ( useSegment.getSelection() ) {
+      if ( useCustomSegment.getSelection() ) {
+        input.setSegment( customSegment.getText() );
+      } else {
+        String item = loadedSegments.getText();
+        input.setSegment( segmentsMapping.get( item ) );
+      }
+    } else {
+      input.setSegment( null );
+    }
+    updateCustomSegmentAvailability();
+  }
+
 
   private void cancel() {
     stepname = null;
@@ -596,6 +740,28 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     customProfileLink.setEnabled( enabled );
     loadedProfiles.setEnabled( !enabled );
     loadProfilesButton.setEnabled( !enabled );
+  }
+
+  private void updateCustomSegmentAvailability() {
+    if ( useSegment.getSelection() ) {
+      useCustomSegment.setEnabled( true );
+      customSegment.setEnabled( true );
+      customSegmentLink.setEnabled( true );
+      loadedSegments.setEnabled( true );
+      loadSegmentsButton.setEnabled( true );
+
+      boolean setDirectly = useCustomSegment.getSelection();
+      customSegment.setEnabled( setDirectly );
+      customSegmentLink.setEnabled( setDirectly );
+      loadedSegments.setEnabled( !setDirectly );
+      loadSegmentsButton.setEnabled( !setDirectly );
+    } else {
+      useCustomSegment.setEnabled( false );
+      customSegment.setEnabled( false );
+      customSegmentLink.setEnabled( false );
+      loadedSegments.setEnabled( false );
+      loadSegmentsButton.setEnabled( false );
+    }
   }
 
   private void updateKeyStatus() {
@@ -631,12 +797,9 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
 
   private void loadProfiles() throws Exception {
     List<Profile> profiles = loadProfilesFromFacade();
-    String[] items = prepareComboBoxItems( profiles );
+    String[] items = prepareLoadedProfilesItems( profiles );
 
-    loadedProfiles.setItems( items );
-    if ( items.length > 0 ) {
-      loadedProfiles.select( 0 );
-    }
+    initComboBoxWith( items, loadedProfiles );
   }
 
   private List<Profile> loadProfilesFromFacade() throws Exception {
@@ -650,7 +813,7 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
     return facade.getProfilesOf( account.getId() );
   }
 
-  private String[] prepareComboBoxItems( List<Profile> profiles ) {
+  private String[] prepareLoadedProfilesItems( List<Profile> profiles ) {
     profilesMapping.clear();
     String[] items = new String[ profiles.size() ];
     int index = 0;
@@ -659,6 +822,39 @@ public class Ga3InputStepDialog extends BaseStepDialog implements StepDialogInte
       String itemStr = String.format( LOADED_PROFILES_ITEM_TEMPLATE, profileId, profile.getName() );
       items[ index++ ] = itemStr;
       profilesMapping.put( itemStr, profileId );
+    }
+    return items;
+  }
+
+  private void loadSegments() throws Exception {
+    List<Segment> segments = loadSegmentsFromFacade();
+    String[] items = prepareLoadedSegmentsItems( segments );
+
+    initComboBoxWith( items, loadedSegments );
+  }
+
+  private static void initComboBoxWith( String[] items, CCombo combo ) {
+    combo.setItems( items );
+    if ( items.length > 0 ) {
+      combo.select( 0 );
+    }
+  }
+
+  private List<Segment> loadSegmentsFromFacade() throws Exception {
+    copyCredentialSettings();
+    return input.getOrCreateGaFacade().getSegments();
+  }
+
+  private String[] prepareLoadedSegmentsItems( List<Segment> segments ) {
+    segmentsMapping.clear();
+    String[] items = new String[ segments.size() ];
+    int index = 0;
+    for ( Segment segment : segments ) {
+      // todo
+      String segmentId = "gaid::" + segment.getId();
+      String itemStr = String.format( LOADED_SEGMENTS_ITEM_TEMPLATE, segmentId, segment.getName() );
+      items[ index++ ] = itemStr;
+      segmentsMapping.put( itemStr, segmentId );
     }
     return items;
   }
