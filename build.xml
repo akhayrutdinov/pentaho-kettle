@@ -673,6 +673,7 @@
       <test todir="${testreports.xml.dir}" name="org.pentaho.di.core.logging.MetricsTest" haltonerror="false"/>
       <test todir="${testreports.xml.dir}" name="org.pentaho.di.core.parameters.ParameterSimpleTransTest" haltonerror="false"/>
       <test todir="${testreports.xml.dir}" name="org.pentaho.di.core.plugins.PluginRegistryTest" haltonerror="false"/>
+      <test todir="${testreports.xml.dir}" name="org.pentaho.di.core.plugins.PluginRegistryClassloadingTest" haltonerror="false"/>
       <test todir="${testreports.xml.dir}" name="org.pentaho.di.core.util.StringEvaluatorTest" haltonerror="false"/>
       <test todir="${testreports.xml.dir}" name="org.pentaho.di.core.vfs.VfsCoreTest" haltonerror="false"/>
       <test todir="${testreports.xml.dir}" name="org.pentaho.di.resource.NameResourceTest" haltonerror="false"/>
