@@ -1080,6 +1080,7 @@ public class JobEntryTrans extends JobEntryBase implements Cloneable, JobEntryIn
               result.setNrErrors( 1 );
             }
             Result newResult = trans.getResult();
+            newResult.compact();
 
             result.clear(); // clear only the numbers, NOT the files or rows.
             result.add( newResult );

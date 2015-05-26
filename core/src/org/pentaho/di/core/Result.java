@@ -63,7 +63,7 @@ import org.w3c.dom.Node;
  * @since 05-11-2003
  */
 @XmlRootElement
-public class Result implements Cloneable {
+public class Result implements Cloneable, Compactable {
 
   /** A constant specifying the tag value for the XML node of the result object */
   public static final String XML_TAG = "result";
@@ -844,5 +844,17 @@ public class Result implements Cloneable {
    */
   public void setLogText( String logText ) {
     this.logText = logText;
+  }
+
+  @Override
+  public void compact() {
+    if (rows != null) {
+      if (rows instanceof ArrayList) {
+        ((ArrayList<?>)rows).trimToSize();
+      }
+      for ( RowMetaAndData row : rows ) {
+        row.compact();
+      }
+    }
   }
 }

@@ -40,6 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.pentaho.di.compatibility.Row;
 import org.pentaho.di.compatibility.Value;
+import org.pentaho.di.core.Compactable;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleEOFException;
 import org.pentaho.di.core.exception.KettleException;
@@ -50,7 +51,7 @@ import org.pentaho.di.core.row.value.ValueMetaFactory;
 import org.pentaho.di.core.xml.XMLHandler;
 import org.w3c.dom.Node;
 
-public class RowMeta implements RowMetaInterface {
+public class RowMeta implements RowMetaInterface, Compactable {
   public static final String XML_META_TAG = "row-meta";
   public static final String XML_DATA_TAG = "row-data";
 
@@ -1093,4 +1094,17 @@ public class RowMeta implements RowMetaInterface {
     return rowData;
   }
 
+  @Override public void compact() {
+    if (valueMetaList instanceof ArrayList) {
+      ((ArrayList<?>)valueMetaList).trimToSize();
+    }
+    if (valuesThatNeedRealClone instanceof ArrayList) {
+      ((ArrayList<?>)valuesThatNeedRealClone).trimToSize();
+    }
+    if (valueIndexMap instanceof ConcurrentHashMap) {
+      Map<String, Integer> tmp = new ConcurrentHashMap<String, Integer>(valueIndexMap.size(), 0.9f);
+      tmp.putAll( valueIndexMap );
+      valueIndexMap = tmp;
+    }
+  }
 }

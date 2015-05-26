@@ -34,7 +34,7 @@ import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.repository.LongObjectId;
 import org.pentaho.di.repository.ObjectId;
 
-public class RowMetaAndData implements Cloneable {
+public class RowMetaAndData implements Cloneable, Compactable {
   private RowMetaInterface rowMeta;
 
   private Object[] data;
@@ -292,5 +292,13 @@ public class RowMetaAndData implements Cloneable {
   public synchronized void removeValue( int index ) {
     rowMeta.removeValueMeta( index );
     data = RowDataUtil.removeItem( data, index );
+  }
+
+  @Override public void compact() {
+    if (data != null && rowMeta != null && data.length > rowMeta.size()) {
+      Object[] tmp = new Object[rowMeta.size()];
+      System.arraycopy( data, 0, tmp, 0, rowMeta.size() );
+      data = tmp;
+    }
   }
 }
