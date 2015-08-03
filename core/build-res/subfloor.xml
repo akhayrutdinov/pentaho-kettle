@@ -1320,6 +1320,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   <target name="compile.compile" depends="init">
     <javac destdir="${classes.dir}"
            debug="${javac.debug}"
+           debuglevel="source,lines"
            deprecation="${javac.deprecation}"
            fork="true"
            memorymaximumsize="${javac.maxmemory}"
