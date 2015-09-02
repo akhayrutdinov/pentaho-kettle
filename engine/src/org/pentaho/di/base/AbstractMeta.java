@@ -164,7 +164,7 @@ public abstract class AbstractMeta extends ChangedFlag implements UndoInterface,
    * @see <a href="http://jira.pentaho.com/browse/PPP-3405">PPP-3405</a>,
    * <a href="http://jira.pentaho.com/browse/PPP-3413">PPP-3413</a>
    **/
-  protected Set<String> privateDatabases;
+  protected Set<String> privateConnections;
 
   /*
    * (non-Javadoc)
@@ -1766,15 +1766,15 @@ public abstract class AbstractMeta extends ChangedFlag implements UndoInterface,
    * Note, that the internal collection is returned with no protection wrapper!
    * @return <b>nonSharableDatabases</b>
    */
-  public Set<String> getPrivateDatabases() {
-    return privateDatabases;
+  public Set<String> getPrivateConnections() {
+    return privateConnections;
   }
 
   /**
    * Sets private databases' names
-   * @param privateDatabases - The list of databases available only for this meta
+   * @param privateConnections - The list of databases available only for this meta
    */
-  public void setPrivateDatabases( Set<String> privateDatabases ) {
-    this.privateDatabases = privateDatabases;
+  public void setPrivateConnections( Set<String> privateConnections ) {
+    this.privateConnections = privateConnections;
   }
 }

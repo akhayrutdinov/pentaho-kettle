@@ -2848,7 +2848,7 @@ public class TransMeta extends AbstractMeta
 
         // Handle connections
         int n = XMLHandler.countNodes( transnode, DatabaseMeta.XML_TAG );
-        Set<String> privateTransformationDatabases = new HashSet<String>( n );
+        Set<String> privateConnections = new HashSet<String>( n );
         if ( log.isDebug() ) {
           log.logDebug( BaseMessages.getString( PKG, "TransMeta.Log.WeHaveConnections", String.valueOf( n ) ) );
         }
@@ -2861,7 +2861,7 @@ public class TransMeta extends AbstractMeta
           DatabaseMeta dbcon = new DatabaseMeta( nodecon );
           dbcon.shareVariablesWith( this );
           if ( !dbcon.isShared() ) {
-            privateTransformationDatabases.add( dbcon.getName() );
+            privateConnections.add( dbcon.getName() );
           }
 
           DatabaseMeta exist = findDatabase( dbcon.getName() );
@@ -2880,7 +2880,7 @@ public class TransMeta extends AbstractMeta
             }
           }
         }
-        setPrivateDatabases( privateTransformationDatabases );
+        setPrivateConnections( privateConnections );
 
         // Read the notes...
         Node notepadsnode = XMLHandler.getSubNode( transnode, XML_TAG_NOTEPADS );

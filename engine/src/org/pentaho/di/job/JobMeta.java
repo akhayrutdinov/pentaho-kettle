@@ -1024,13 +1024,13 @@ public class JobMeta extends AbstractMeta implements Cloneable, Comparable<JobMe
       // Read the database connections
       //
       int nr = XMLHandler.countNodes( jobnode, "connection" );
-      Set<String> privateDatabases = new HashSet<String>( nr );
+      Set<String> privateConnections = new HashSet<String>( nr );
       for ( int i = 0; i < nr; i++ ) {
         Node dbnode = XMLHandler.getSubNodeByNr( jobnode, "connection", i );
         DatabaseMeta dbcon = new DatabaseMeta( dbnode );
         dbcon.shareVariablesWith( this );
         if ( !dbcon.isShared() ) {
-          privateDatabases.add( dbcon.getName() );
+          privateConnections.add( dbcon.getName() );
         }
 
         DatabaseMeta exist = findDatabase( dbcon.getName() );
@@ -1049,7 +1049,7 @@ public class JobMeta extends AbstractMeta implements Cloneable, Comparable<JobMe
           }
         }
       }
-      setPrivateDatabases( privateDatabases );
+      setPrivateConnections( privateConnections );
 
       // Read the slave servers...
       //

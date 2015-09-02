@@ -61,10 +61,10 @@ public abstract class PrivateDatabasesTestTemplate<T extends AbstractMeta> {
     assertEquals( 3, loadedDbs.size() );
     assertThat( loadedDbs, JUnitMatchers.hasItems( "meta1", "meta2", "privateMeta" ) );
 
-    Set<String> privateDatabases = loaded.getPrivateDatabases();
-    assertNotNull( privateDatabases );
-    assertEquals( 1, privateDatabases.size() );
-    assertTrue( privateDatabases.contains( "privateMeta" ) );
+    Set<String> privateConnections = loaded.getPrivateConnections();
+    assertNotNull( privateConnections );
+    assertEquals( 1, privateConnections.size() );
+    assertTrue( privateConnections.contains( "privateMeta" ) );
   }
 
   protected void doTest_NoPrivate() throws Exception {
@@ -74,7 +74,7 @@ public abstract class PrivateDatabasesTestTemplate<T extends AbstractMeta> {
     SharedObjects fakeSharedObjects = createFakeSharedObjects();
     T loaded = fromXml( xml, fakeSharedObjects );
 
-    Set<String> privateDatabases = loaded.getPrivateDatabases();
+    Set<String> privateDatabases = loaded.getPrivateConnections();
     assertNotNull( privateDatabases );
     assertTrue( privateDatabases.isEmpty() );
   }
@@ -92,7 +92,7 @@ public abstract class PrivateDatabasesTestTemplate<T extends AbstractMeta> {
     List<String> loadedDbs = Arrays.asList( loaded.getDatabaseNames() );
     assertTrue( loadedDbs.contains( "privateMeta" ) );
 
-    Set<String> privateDatabases = loaded.getPrivateDatabases();
+    Set<String> privateDatabases = loaded.getPrivateConnections();
     assertNotNull( privateDatabases );
     assertEquals( 1, privateDatabases.size() );
     assertTrue( privateDatabases.contains( privateMeta.getName() ) );
